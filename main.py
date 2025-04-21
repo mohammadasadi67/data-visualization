@@ -1,9 +1,13 @@
 import streamlit as st
 import pandas as pd
 import os
-from io import BytesIO
+from mega import Mega
 
-# این خط باید اولین دستور باشد
+# ✅ Authenticate with MEGA
+mega = Mega()
+m = mega.login("your_email@example.com", "your_password")  # Replace with your MEGA credentials
+
+# ✅ Set Up Streamlit App
 st.set_page_config(page_title="Data Management App - Runaway", layout="wide")
 
 
@@ -28,7 +32,7 @@ CATEGORY_FOLDERS = {
     "1000": "1000",
     "125": "125",
     "200": "200",
-    "gasti": "Gasti"  # اصلاح نام دسته‌بندی (کلید کوچک، مقدار اصلی بزرگ)
+    "gasti": "Gasti"
 }
 
 # Ensure main folders exist
@@ -37,7 +41,7 @@ for folder in CATEGORY_FOLDERS.values():
 
 # Sidebar navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Home", "Upload", "Archive", "Contact Me"])
+page = st.sidebar.radio("Go to", ["Home", "Upload", "Archive", "Cloud Backup", "Contact Me"])
 
 # Home Page
 if page == "Home":
@@ -49,18 +53,17 @@ elif page == "Upload":
     st.title("Upload Files")
     st.write("Upload your daily Excel files.")
 
-    # File uploader
     uploaded_files = st.file_uploader("Upload Excel files", type=["xlsx"], accept_multiple_files=True)
 
     if uploaded_files:
         for uploaded_file in uploaded_files:
-            file_name = uploaded_file.name.lower()  # تبدیل نام فایل به حروف کوچک
+            file_name = uploaded_file.name.lower()
             st.subheader(f"Processing: {uploaded_file.name}...")
 
-            # Determine category based on filename (case-insensitive)
+            # Determine category based on filename
             category = None
             for key in CATEGORY_FOLDERS:
-                if key in file_name:  # بررسی بدون حساسیت به حروف بزرگ/کوچک
+                if key in file_name:
                     category = CATEGORY_FOLDERS[key]
                     break
 
@@ -68,42 +71,16 @@ elif page == "Upload":
                 st.warning(f"❌ Category not found for file: {uploaded_file.name}. Skipping...")
                 continue
 
-            # Check if file already exists
+            # Save file locally
             save_path = os.path.join(category, uploaded_file.name)
             if os.path.exists(save_path):
                 st.error(f"❌ File '{uploaded_file.name}' already exists in {category}! Upload skipped.")
                 continue
 
-            # Save file in the corresponding category folder
             with open(save_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
             st.success(f"✅ File saved to {category}/")
-
-    # Download Section
-    st.subheader("Download Files from Archive")
-    selected_category = st.selectbox("Select Category", list(CATEGORY_FOLDERS.values()))
-
-    if selected_category:
-        files = [f for f in os.listdir(selected_category) if os.path.isfile(os.path.join(selected_category, f))]
-
-        if files:
-            selected_file = st.selectbox("Select File to Download", files)
-
-            if selected_file:
-                file_path = os.path.join(selected_category, selected_file)
-
-                with open(file_path, "rb") as f:
-                    file_bytes = f.read()
-
-                st.download_button(
-                    label="Download File",
-                    data=file_bytes,
-                    file_name=selected_file,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-        else:
-            st.warning("No files available in this category.")
 
 # Archive Page
 elif page == "Archive":
@@ -120,6 +97,28 @@ elif page == "Archive":
                 st.write(f"📄 {file}")
         else:
             st.write("No files in this category.")
+
+# **💾 Cloud Backup (MEGA)**
+elif page == "Cloud Backup":
+    st.title("Backup Files to MEGA")
+
+    selected_category = st.selectbox("Select Category to Upload", list(CATEGORY_FOLDERS.values()))
+
+    if selected_category:
+        files = [f for f in os.listdir(selected_category) if os.path.isfile(os.path.join(selected_category, f))]
+
+        if files:
+            selected_file = st.selectbox("Select File to Upload to MEGA", files)
+
+            if selected_file:
+                file_path = os.path.join(selected_category, selected_file)
+
+                # ✅ Upload file to MEGA
+                m.upload(file_path)
+
+                st.success(f"✅ File '{selected_file}' uploaded to MEGA cloud storage!")
+        else:
+            st.warning("No files available in this category.")
 
 # Contact Me Page
 elif page == "Contact Me":
