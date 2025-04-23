@@ -5,7 +5,7 @@ from supabase import create_client, Client
 
 # ✅ Supabase credentials
 url = "https://rlutsxvghmhrgcnqbmch.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsdXRzeHZnaG1ocmdjbnFibWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxMjg5OTEsImV4cCI6MjA2MDcwNDk5MX0.hM-WA6setQ_PZ13rOBEoy2a3rn7wQ6wLFMV9SyBWfHE"
+key = "your-supabase-api-key"  # Replace with your actual Supabase key
 supabase: Client = create_client(url, key)
 
 # ✅ Set Up Streamlit App
@@ -107,19 +107,24 @@ elif page == "Cloud Backup":
             if selected_file:
                 file_path = os.path.join(selected_category, selected_file)
 
+                # Read file content as bytes
                 with open(file_path, "rb") as f:
                     file_bytes = f.read()
 
-                # Corrected line to upload file to Supabase
-                supabase.storage.from_("files").upload(
-                    f"{selected_category}/{selected_file}",
-                    file_bytes,
-                    {
-                        "content-type": "application/octet-stream"
-                    }
-                )
+                try:
+                    # اطمینان از اینکه Bucket با نام 'files' وجود دارد
+                    response = supabase.storage.from_("files").upload(
+                        f"{selected_category}/{selected_file}", file_bytes, {
+                            "content-type": "application/octet-stream"
+                        })
 
-                st.success(f"✅ File '{selected_file}' uploaded to Supabase storage!")
+                    if response.status_code == 200:
+                        st.success(f"✅ فایل '{selected_file}' با موفقیت آپلود شد.")
+                    else:
+                        st.error(f"❌ خطا در آپلود: {response.text}")
+                except Exception as e:
+                    st.error(f"❌ خطایی در آپلود فایل رخ داد: {str(e)}")
+
         else:
             st.warning("No files available in this category.")
 
