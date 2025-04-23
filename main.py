@@ -110,9 +110,14 @@ elif page == "Cloud Backup":
                 with open(file_path, "rb") as f:
                     file_bytes = f.read()
 
-                supabase.storage.from_("files").upload(f"{selected_category}/{selected_file}", file_bytes, {"
-                    "content-type": "application/octet-stream"
-                })
+                # Corrected line to upload file to Supabase
+                supabase.storage.from_("files").upload(
+                    f"{selected_category}/{selected_file}",
+                    file_bytes,
+                    {
+                        "content-type": "application/octet-stream"
+                    }
+                )
 
                 st.success(f"✅ File '{selected_file}' uploaded to Supabase storage!")
         else:
